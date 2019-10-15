@@ -1,5 +1,6 @@
 Fix from [Tramac's repositories](https://github.com/Tramac/awesome-semantic-segmentation-pytorch).
-因為是在Google Colab上訓練，擔心被切斷，所以增加了自動上傳到Google Drive的片段
+因為是在Google Colab上訓練，擔心被切斷，所以增加了自動上傳到Google Drive的片段。
+使用[Joshua1989]所寫的 colab.util.py 稍微修改。
 
 1. \scripts\train.py : ICNet nclass=30 (cityscapes)
 2. \core\utils\loss.py : add function `save_to_Gdrive`
