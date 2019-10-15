@@ -1,6 +1,7 @@
-# form https://gist.github.com/Joshua1989/dc7e60aa487430ea704a8cb3f2c5d6a6#file-colab_util-py
+# fix form https://gist.github.com/Joshua1989/dc7e60aa487430ea704a8cb3f2c5d6a6#file-colab_util-py
 # -----------------------------------------------------------------------------
 # !pip install -U -q PyDrive
+
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from google.colab import auth
@@ -16,6 +17,7 @@ __all__ = [
     'GoogleDriveHandler'
 ]
 
+# 創造檔案
 def create_archive(zip_name, local_file_paths, temp_folder='/tmp', verbose=False):
     zip_name = '{0}/{1}'.format(temp_folder, zip_name) + '.tar.gz' * ('.tar.gz' not in zip_name)
     # Filter out non-existing files and directorys
@@ -119,8 +121,12 @@ class GoogleDriveHandler:
         parent_folder_id = self.path_to_id(parent_path)
         file_dict = {f['title']:f for f in self.list_folder(parent_folder_id)}
         file_name = local_file_path.split('/')[-1]
+        
+        # fix: dict 無 Delete 屬性
         if file_name in file_dict and overwrite:
-            file_dict[file_name].Delete()
+            file_delete = self.drive.CreateFile(file_dict[file_name])
+            file_delete.Delete()
+            # file_dict[file_name].Delete()
         file = self.drive.CreateFile(
             {
                 'title': file_name, 
