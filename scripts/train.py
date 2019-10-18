@@ -1,5 +1,4 @@
 #@title train.py: add back function 
-%%writefile  /content/awesome-semantic-segmentation-pytorch/scripts/train.py
 # has backup function
 import argparse
 import time
