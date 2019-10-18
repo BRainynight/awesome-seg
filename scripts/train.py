@@ -1,3 +1,6 @@
+#@title train.py: add back function 
+%%writefile  /content/awesome-semantic-segmentation-pytorch/scripts/train.py
+# has backup function
 import argparse
 import time
 import datetime
@@ -24,8 +27,11 @@ from core.utils.lr_scheduler import WarmupPolyLR
 from core.utils.score import SegmentationMetric
 
 from colab_util import *
+
+
 drive_handler = GoogleDriveHandler()
 test_folder_id = drive_handler.create_folder('test_folder')
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Semantic Segmentation Training With Pytorch')
@@ -45,7 +51,7 @@ def parse_args():
                         help='backbone name (default: vgg16)')
     parser.add_argument('--dataset', type=str, default='pascal_voc',
                         choices=['pascal_voc', 'pascal_aug', 'ade20k',
-                                 'citys', 'sbu'],
+                                 'citys', 'sbu', 'mydata'],
                         help='dataset name (default: pascal_voc)')
     parser.add_argument('--base-size', type=int, default=520,
                         help='base image size')
@@ -100,6 +106,11 @@ def parse_args():
                         help='run validation every val-epoch')
     parser.add_argument('--skip-val', action='store_true', default=False,
                         help='skip validation during training')
+    # my setting
+    parser.add_argument('--backup', type=str, default="none",
+                        choices=['drive', 'pc','none'], 
+                        help="backup type ")
+
     args = parser.parse_args()
 
     # default settings for epochs, batch_size and lr
@@ -112,6 +123,7 @@ def parse_args():
             'ade20k': 160,
             'citys': 120,
             'sbu': 160,
+            'mydata': 50,
         }
         args.epochs = epoches[args.dataset.lower()]
     if args.lr is None:
@@ -123,6 +135,7 @@ def parse_args():
             'ade20k': 0.01,
             'citys': 0.01,
             'sbu': 0.001,
+            'mydata': 0.001,
         }
         args.lr = lrs[args.dataset.lower()] / 8 * args.batch_size
     return args
@@ -170,11 +183,18 @@ class Trainer(object):
                 name, ext = os.path.splitext(args.resume)
                 assert ext == '.pkl' or '.pth', 'Sorry only .pth and .pkl files supported.'
                 print('Resuming training, loading {}...'.format(args.resume))
-                self.model.load_state_dict(torch.load(args.resume, map_location=lambda storage, loc: storage))
+                self.model.load_state_dict(torch.load(args.resume,encoding='ascii', map_location=lambda storage, loc: storage))
 
         # create criterion
+        # although  "from core/data/dataloader import database", 
+        # use like get_segmentation_loss(nclass=datasets[dataset].NUM_CLASS) is the better way,         
+        # but it has too long relative path, can't success import 
+        # so just key the number is more quickly
+
+        num_class = 19
         self.criterion = get_segmentation_loss(args.model, use_ohem=args.use_ohem, aux=args.aux,
-                                               aux_weight=args.aux_weight, ignore_index=-1).to(self.device)
+                                               aux_weight=args.aux_weight, ignore_index=-1,
+                                               nclass= num_class ).to(self.device)
 
         # optimizer, for model just includes pretrained, head and auxlayer
         params_list = list()
@@ -214,6 +234,7 @@ class Trainer(object):
         logger.info('Start training, Total Epochs: {:d} = Total Iterations {:d}'.format(epochs, max_iters))
 
         self.model.train()
+
         for iteration, (images, targets, _) in enumerate(self.train_loader):
             iteration = iteration + 1
             self.lr_scheduler.step()
@@ -283,37 +304,69 @@ class Trainer(object):
             self.best_pred = new_pred
         save_checkpoint(self.model, self.args, is_best)
         synchronize()
-        
-def save_to_Gdrive(model, filename):
+
+## my change 
+def save_to_Gdrive(model, filename, save_each = False):
+    
+    # save type 1 : save every checkpoint (each file is 110MB, please notice your Google drive capability)
+    if (save_each):
+      time_stamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+      colab_file_path = filename[0:-4]+time_stamp+".pth"
+      
+      torch.save(model.state_dict(), colab_file_path )
+      drive_handler.upload( colab_file_path , parent_path='test_folder')
+
+      drive_handler.list_folder( test_folder_id, max_depth=1)
+      print(colab_file_path,"is save to Gdrive.")
+
+    # save type 2 : continue renew it. 
+    else:
+      drive_handler.upload( filename, parent_path='test_folder')
+      print( filename,"is save to Gdrive.")
+
+
+def save_to_PC(model, filename, args, is_best=False ):
     time_stamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-    Gdrive_filename = filename[0:-4]+time_stamp+".pth"
-    colab_file_path = Gdrive_filename
+    Timestamp_filename = filename[0:-4]+time_stamp+".pth"
+    
+    downlad_file_name = '{}_{}_{}_{}.pth'.format(args.model, args.backbone, args.dataset,time_stamp) 
+    
+    torch.save(model.state_dict(), Timestamp_filename )
 
-    torch.save(model.state_dict(), colab_file_path )
-    drive_handler.upload( colab_file_path , parent_path='test_folder')
+    time.sleep(30)
+    files.download(downlad_file_name)
+    print(downlad_file_name,"is save to PC.")
 
-    drive_handler.list_folder(test_folder_id, max_depth=1)
-    print(Gdrive_filename,"is save to drive.")
+def backup( model, filename, args, is_best=False):
+    if args.backup == "pc":
+        return save_to_PC(model, filename, args, is_best=False )
+    elif args.backup == "drive":
+        return save_to_Gdrive(model, filename)
+    else:
+        print("NONE backup")
 
+## my change end 
 def save_checkpoint(model, args, is_best=False):
     """Save Checkpoint"""
     directory = os.path.expanduser(args.save_dir)
     if not os.path.exists(directory):
         os.makedirs(directory)
     filename = '{}_{}_{}.pth'.format(args.model, args.backbone, args.dataset)
+    # filename is include path
     filename = os.path.join(directory, filename)
 
     if args.distributed:
         model = model.module
     torch.save(model.state_dict(), filename)
-    save_to_Gdrive(model, filename)
-
+    # my change 
+    backup( model, filename, args, is_best=False)
 
     if is_best:
         best_filename = '{}_{}_{}_best_model.pth'.format(args.model, args.backbone, args.dataset)
         best_filename = os.path.join(directory, best_filename)
         shutil.copyfile(filename, best_filename)
-        save_to_Gdrive(model, best_filename)
+        # my change 
+        backup( model, best_filename, args, is_best=False)
 
 
 if __name__ == '__main__':
