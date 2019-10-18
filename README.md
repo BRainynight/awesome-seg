@@ -20,12 +20,17 @@ Fix from [Tramac's repositories](https://github.com/Tramac/awesome-semantic-segm
   * `def __getitem__():  `
     `mask = Image.open(self.mask_paths[index]).convert('L')`
     
-  ```
-  File "/content/awesome-semantic-segmentation-pytorch/core/utils/score.py", line 76, in batch_pix_accuracy
-    pixel_correct = torch.sum((predict == target) * (target > 0)).item()
-  RuntimeError: The size of tensor a (640) must match the size of tensor b (3) at non-singleton dimension 3
-```
-    
+    ```
+    File "/content/awesome-semantic-segmentation-pytorch/core/utils/score.py", line 76, in batch_pix_accuracy
+      pixel_correct = torch.sum((predict == target) * (target > 0)).item()
+    RuntimeError: The size of tensor a (640) must match the size of tensor b (3) at non-singleton dimension 3
+    ```
+2. \core\models\base_models\resnetv1b.py:  
+  沒有傳入 kwargs 導致 TypeError:
+  `class ResNetV1b(nn.Module):`: add `**kwargs in __init__()  `
+   ```
+   TypeError: __init__() got an unexpected keyword argument 'local_rank'
+    ```   
     
     
 使用自己的資料集時
@@ -41,11 +46,11 @@ model = get_model(args.model, **vars(args), pretrained=True, root=args.save_fold
 
 2. model_zoo.py:       
 in function get_icnet_resnet50_citys :      
-```    
-    kwargs.pop("dataset")     
-    net = _models[name](**kwargs)
-    return net 
-```
+   ```    
+       kwargs.pop("dataset")     
+       net = _models[name](**kwargs)
+       return net 
+   ```
 因為決定用哪個模型，是由最初的參數 --model 來決定。    
 如果把 dataset 傳入 _models 的模型中，會產生 **dataset 被指定兩次**的狀況，所以在這裡先把它刪掉 (_models的模型自己會指定 dataset)。    
 不能從一開始就少掉這個指令是因為 demo.py 裡面需要這個參數。    
