@@ -1,41 +1,60 @@
+# 簡介
 Fix from [Tramac's repositories](https://github.com/Tramac/awesome-semantic-segmentation-pytorch).
 因為是在Google Colab上訓練，擔心被切斷，所以增加了自動上傳到Google Drive的片段。  
 # 我所做的調整: 
 ## Train 階段
-1. \scripts\train.py : 
-  * class Trainer(object): 
-    在`self.criterion = get_segmentation_loss`的參數裡面，多傳入一個(nclass = xx)
-    在其他地方，nclass可以透過 nclass=datasets[dataset].NUM_CLASS 的方式取得，但是這需要調用到 from dataloader import datasets.
-    這個檔案對 train.py來說太遙遠，暫且用手動輸入帶過他。
-  * add function `save_to_Gdrive`: 
-    我自己另外增加了上傳到colab的包，修改過的colab+pydrive也放在這個respository裡面。
+1. \scripts\train.py :    
+  * class Trainer(object):     
+    在`self.criterion = get_segmentation_loss`的參數裡面，多傳入一個(nclass = xx)    
+    在其他地方，nclass可以透過 nclass=datasets[dataset].NUM_CLASS 的方式取得，但是這需要調用到 from dataloader import datasets.    
+    這個檔案對 train.py來說太遙遠，暫且用手動輸入帶過他。    
+  * add function `save_to_Gdrive`:     
+    我自己另外增加了上傳到colab的包，修改過的colab+pydrive也放在這個respository裡面。    
   
 2. 
 
-## Demo 階段
+## Eval 階段
+1. \core\data\dataloader\mydata.py:  
+  基於cityscapes.py 修改而成，其中因為手上自己資料集的label檔案，雖是黑白png，卻是以三通到的方式儲存。
+  書需要轉換成灰階圖，否則評價 (socre.py )分數上，會因為矩陣大小不符合而報錯。
+  * `def __getitem__():  `
+    `mask = Image.open(self.mask_paths[index]).convert('L')`
+    
+  ```
+  File "/content/awesome-semantic-segmentation-pytorch/core/utils/score.py", line 76, in batch_pix_accuracy
+    pixel_correct = torch.sum((predict == target) * (target > 0)).item()
+  RuntimeError: The size of tensor a (640) must match the size of tensor b (3) at non-singleton dimension 3
+```
+    
+    
+    
+使用自己的資料集時
 
-1. \scripts\demo.py:   
-沒有將 arg 的整個參數傳送給get_model，添加 `**vars(args)`  。
-因為 get_model 內部使用到的是 kwargs (字典方式取值) ，如果只傳入args，**kwargs根本是空的**，所以使用上述方式傳入字典形式參數索引。
+## Demo 階段    
+
+1. \scripts\demo.py:       
+沒有將 arg 的整個參數傳送給get_model，添加 `**vars(args)`  。    
+因為 get_model 內部使用到的是 kwargs (字典方式取值) ，如果只傳入args，**kwargs根本是空的**，所以使用上述方式傳入字典形式參數索引。    
 ```
 model = get_model(args.model, **vars(args), pretrained=True, root=args.save_folder).to(device)
 ```
 
-2. model_zoo.py:   
-in function get_icnet_resnet50_citys :  
-```
+2. model_zoo.py:       
+in function get_icnet_resnet50_citys :      
+```    
     kwargs.pop("dataset")     
     net = _models[name](**kwargs)
     return net 
 ```
-因為決定用哪個模型，是由最初的參數 --model 來決定。
-如果把 dataset 傳入 _models 的模型中，會產生 **dataset 被指定兩次**的狀況，所以在這裡先把它刪掉 (_models的模型自己會指定 dataset)。
-不能從一開始就少掉這個指令是因為 demo.py 裡面需要這個參數。
+因為決定用哪個模型，是由最初的參數 --model 來決定。    
+如果把 dataset 傳入 _models 的模型中，會產生 **dataset 被指定兩次**的狀況，所以在這裡先把它刪掉 (_models的模型自己會指定 dataset)。    
+不能從一開始就少掉這個指令是因為 demo.py 裡面需要這個參數。    
 ```
 mask = get_color_pallete(pred, args.dataset)
 ```
 
-**PS.** `--dataset citys` 這個指令不知道為何，一直沒辦法輸入成功，我直接把預設改成citys。
+**PS.** `--dataset citys` 這個指令不知道為何，一直沒辦法輸入成功，我直接把預設改成citys。  
+
 
 -------
 
