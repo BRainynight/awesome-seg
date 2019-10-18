@@ -1,3 +1,4 @@
+#@title icnet.py
 """Image Cascade Network"""
 import torch
 import torch.nn as nn
@@ -116,6 +117,7 @@ def get_icnet(dataset='citys', backbone='resnet50', pretrained=False, root='~/.t
         'ade20k': 'ade',
         'coco': 'coco',
         'citys': 'citys',
+        'mydata':'mydata',
     }
     from ..data.dataloader import datasets
     model = ICNet(datasets[dataset].NUM_CLASS, backbone=backbone, pretrained_base=pretrained_base, **kwargs)
@@ -128,6 +130,7 @@ def get_icnet(dataset='citys', backbone='resnet50', pretrained=False, root='~/.t
 
 
 def get_icnet_resnet50_citys(**kwargs):
+    # kwargs.pop("dataset") 
     return get_icnet('citys', 'resnet50', **kwargs)
 
 
