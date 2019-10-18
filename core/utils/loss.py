@@ -1,3 +1,4 @@
+#@title loss.py: fix error in ICNetLoss
 """Custom losses."""
 import torch
 import torch.nn as nn
@@ -90,9 +91,9 @@ class EncNetLoss(nn.CrossEntropyLoss):
 class ICNetLoss(nn.CrossEntropyLoss):
     """Cross Entropy Loss for ICNet"""
 
-    def __init__(self, nclass=30, aux_weight=0.4, ignore_index=-1, **kwargs):
+    def __init__(self, nclass, aux_weight=0.4, ignore_index=-1, **kwargs):
         super(ICNetLoss, self).__init__(ignore_index=ignore_index)
-        self.nclass = nclass
+        # self.nclass = nclass
         self.aux_weight = aux_weight
 
     def forward(self, *inputs):
