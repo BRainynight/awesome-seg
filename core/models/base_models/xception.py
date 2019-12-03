@@ -83,7 +83,7 @@ class Xception65(nn.Module):
     """Modified Aligned Xception
     """
 
-    def __init__(self, num_classes=1000, output_stride=32, norm_layer=nn.BatchNorm2d, , **kwargs ):
+    def __init__(self, num_classes=1000, output_stride=32, norm_layer=nn.BatchNorm2d, **kwargs ):
         super(Xception65, self).__init__()
         if output_stride == 32:
             entry_block3_stride = 2
