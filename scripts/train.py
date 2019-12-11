@@ -67,7 +67,7 @@ def parse_args():
                         help='Auxiliary loss')
     parser.add_argument('--aux-weight', type=float, default=0.4,
                         help='auxiliary loss weight')
-    parser.add_argument('--batch-size', type=int, default=4, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=2, metavar='N',
                         help='input batch size for training (default: 8)')
     parser.add_argument('--start_epoch', type=int, default=0,
                         metavar='N', help='start epochs (default:0)')
@@ -314,6 +314,8 @@ def save_to_Gdrive(model, filename, save_each = False):
       
       torch.save(model.state_dict(), colab_file_path )
       drive_handler.upload( colab_file_path , parent_path='test_folder')
+      drive_handler.upload(args.log_dir+'{}_{}_{}_log.txt'.format(args.model, args.backbone, args.dataset), parent_path='test_folder')
+
 
       drive_handler.list_folder( test_folder_id, max_depth=1)
       print(colab_file_path,"is save to Gdrive.")
@@ -321,6 +323,8 @@ def save_to_Gdrive(model, filename, save_each = False):
     # save type 2 : continue renew it. 
     else:
       drive_handler.upload( filename, parent_path='test_folder')
+      drive_handler.upload(args.log_dir+'{}_{}_{}_log.txt'.format(args.model, args.backbone, args.dataset), parent_path='test_folder')
+
       print( filename,"is save to Gdrive.")
 
 
